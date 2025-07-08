@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Gestión de Pedidos de Almuerzo Escolar</title>
-  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="admin-wrap">
@@ -122,9 +122,6 @@
           <span id="msg-promocion" style="color:#d2691e;font-size:0.93em;margin-left:12px;"></span>
         </div>
         <div id="promo-semanal-block" style="display:none;"></div>
-
-        <!-- Si tienes un modal o bloque de formulario adicional para la promo semanal, ponlo aquí -->
-        <!-- <div id="promo-semanal-block" style="display:none;"> ... </div> -->
       </div>
       <!-- FIN BLOQUE GENERAL -->
 
@@ -178,6 +175,7 @@
   </div>
 </div>
 
+<!-- Script pequeño inline -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   function actualizarLabelsPorTipo() {
@@ -190,5 +188,13 @@ document.addEventListener('DOMContentLoaded', function() {
   actualizarLabelsPorTipo();
 });
 </script>
+
+<!-- SCRIPTS DE FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<!-- Agrega otros módulos si usas (Auth, Storage, etc) -->
+
+<!-- TU JS PRINCIPAL -->
+<script src="app.js"></script>
 </body>
 </html>
