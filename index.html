@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestión de Pedidos de Almuerzo Escolar</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="admin-wrap">
+  <div class="admin-header">
+    <div class="icon-title">🍽️</div>
+    <div>
+      <div class="admin-title">Gestión de Pedidos de Almuerzo Escolar</div>
+      <div class="admin-sub">Panel Administrativo · <span id="fechaActual"></span></div>
+    </div>
+  </div>
+
+  <div class="admin-toolbar">
+    <button class="btn-azul" onclick="imprimirPedidos()"><i>🖨️</i> Imprimir Pedidos</button>
+    <button class="btn-excel" onclick="exportarExcel()"><i>📁</i> Exportar a Excel</button>
+  </div>
+
+  <div class="admin-cards-row">
+    <div class="admin-card card-blue">
+      <div class="admin-card-title">Total de Pedidos</div>
+      <div class="admin-card-num">0</div>
+      <div class="admin-card-icon">📄</div>
+    </div>
+    <div class="admin-card card-green">
+      <div class="admin-card-title">Entregados</div>
+      <div class="admin-card-num">0</div>
+      <div class="admin-card-icon">✅</div>
+    </div>
+    <div class="admin-card card-orange">
+      <div class="admin-card-title">Pendientes</div>
+      <div class="admin-card-num">0</div>
+      <div class="admin-card-icon">⏳</div>
+    </div>
+    <div class="admin-card card-violet">
+      <div class="admin-card-title">Niños Pequeños</div>
+      <div class="admin-card-num">0</div>
+      <div class="admin-card-icon">🧸</div>
+    </div>
+  </div>
+
+  <!-- Registrar pedido -->
+  <div class="card-form">
+    <div class="form-header">📝 Registrar Nuevo Pedido</div>
+    <form id="form-pedido" autocomplete="off">
+      <div class="row-form">
+        <div class="form-group" style="flex:2; position:relative;">
+          <label>Nombre del Niño</label>
+          <input type="text" id="nombre-nino" placeholder="Buscar estudiante..." required autocomplete="off">
+          <div id="sugerenciasNombres" class="sugerencias-lista"></div>
+          <div id="infoAlumno"></div>
+        </div>
+        <div class="form-group">
+          <label>Fecha del Pedido</label>
+          <input type="date" id="fecha-pedido" required>
+        </div>
+      </div>
+      <div class="row-form">
+        <div class="form-group">
+          <label for="tipo-pedido">Tipo de Pedido</label>
+          <select id="tipo-pedido">
+            <option>Almuerzo</option>
+            <option>Variado</option>
+            <option>Desayunos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- BLOQUE DESAYUNO: Solo visible si Tipo = Desayunos -->
+      <div id="bloque-desayuno" style="display:none; margin-bottom: 12px;">
+        <div class="row-form">
+          <!-- BEBIDAS -->
+          <div class="form-group">
+            <label>Bebidas</label>
+            <select id="bebidas-categoria">
+              <option value="">Selecciona categoría</option>
+            </select>
+            <select id="bebidas-producto">
+              <option value="">Selecciona producto</option>
+            </select>
+          </div>
+          <!-- FONDO -->
+          <div class="form-group">
+            <label>Fondo</label>
+            <select id="fondo-categoria">
+              <option value="">Selecciona categoría</option>
+            </select>
+            <select id="fondo-producto">
+              <option value="">Selecciona producto</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- FIN BLOQUE DESAYUNO -->
+
+      <!-- BLOQUE PLATO/ENTRADA/POSTRE para Almuerzo/Variado -->
+      <div id="bloque-general">
+        <div class="row-form">
+          <div class="form-group" id="grupo-menu-dia" style="position:relative;">
+            <label id="label-menu-dia">Plato</label>
+            <input id="menu-dia" type="text" autocomplete="off">
+            <div id="sugerenciasJugos" class="sugerencias-lista"></div>
+            <div id="sugerenciasPlatos" class="sugerencias-lista"></div>
+          </div>
+          <div class="form-group" id="grupo-entrada" style="position:relative;">
+            <label id="label-entrada">Entrada</label>
+            <input id="entrada" type="text" autocomplete="off">
+            <div id="sugerenciasFondos" class="sugerencias-lista"></div>
+          </div>
+          <div class="form-group" id="grupo-postre" style="position:relative;">
+            <label id="label-postre">Postre</label>
+            <input id="postre" type="text" readonly class="input-disabled" autocomplete="off">
+          </div>
+        </div>
+        <!-- Botón Promoción semanal SOLO para Almuerzo -->
+        <div id="bloque-promocion-btn" style="margin-top:7px;">
+          <button type="button" class="btn-azul" id="btn-promocion-semanal">Promoción semanal</button>
+          <span id="msg-promocion" style="color:#d2691e;font-size:0.93em;margin-left:12px;"></span>
+        </div>
+        <div id="promo-semanal-block" style="display:none;"></div>
+
+        <!-- Si tienes un modal o bloque de formulario adicional para la promo semanal, ponlo aquí -->
+        <!-- <div id="promo-semanal-block" style="display:none;"> ... </div> -->
+      </div>
+      <!-- FIN BLOQUE GENERAL -->
+
+      <div class="row-form">
+        <div class="form-group">
+          <label>Método de Pago</label>
+          <select id="metodo-pago">
+            <option>Credito</option>
+            <option>Pagado</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>Observaciones</label>
+          <input type="text" id="observaciones" placeholder="ej. sin picante, arroz extra...">
+        </div>
+      </div>
+      <button class="btn-verde" type="submit">Registrar Pedido</button>
+    </form>
+  </div>
+  <hr>
+
+  <!-- Filtro para ver pedidos de un día -->
+  <div style="margin-bottom:16px;">
+    <label><b>Ver pedidos del día:</b></label>
+    <input type="date" id="fecha-mostrar" />
+  </div>
+
+  <!-- Tabla pedidos de hoy -->
+  <div class="card-table">
+    <div class="table-header">📋 Pedidos de Hoy</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th>Tipo</th>
+            <th>Detalles del Pedido</th>
+            <th>Pago</th>
+            <th>Estado</th>
+            <th>Observaciones</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pedidos"></tbody>
+      </table>
+    </div>
+    <div class="table-bottom-bar">
+      <button class="btn-azul" onclick="imprimirPedidos()"><i>🖨️</i> Imprimir Pedidos de Hoy</button>
+      <button class="btn-verde"><i>📊</i> Reporte Semanal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function actualizarLabelsPorTipo() {
+    const tipo = document.getElementById('tipo-pedido').value;
+    document.getElementById('bloque-desayuno').style.display = (tipo === "Desayunos") ? '' : 'none';
+    document.getElementById('bloque-general').style.display = (tipo !== "Desayunos") ? '' : 'none';
+    document.getElementById('bloque-promocion-btn').style.display = (tipo === "Almuerzo") ? '' : 'none';
+  }
+  document.getElementById('tipo-pedido').addEventListener('change', actualizarLabelsPorTipo);
+  actualizarLabelsPorTipo();
+});
+</script>
+</body>
+</html>
