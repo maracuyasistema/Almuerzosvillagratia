@@ -51,7 +51,6 @@ db.ref('Variados').on('value', snap => {
 });
 
 // ------------------- SELECTS DEPENDIENTES DESAYUNO (BEBIDAS Y FONDO) -------------------
-
 let categoriasBebidas = [];
 let productosPorCategoriaBebidas = {};
 let categoriasFondo = [];
@@ -66,7 +65,6 @@ function cargarDesayunoFirebase() {
 
     snap.forEach(child => {
       const val = child.val();
-
       // Bebidas
       if(val.tipo === "Bebidas") {
         if(!categoriasBebidas.includes(val.categoria)) {
@@ -75,7 +73,6 @@ function cargarDesayunoFirebase() {
         }
         productosPorCategoriaBebidas[val.categoria].push(val.producto);
       }
-
       // Fondo
       if(val.tipo === "Fondo") {
         if(!categoriasFondo.includes(val.categoria)) {
@@ -221,15 +218,12 @@ function formato(fecha) {
 // Calcula lunes y viernes para cualquier fecha (yyyy-mm-dd)
 function getLunesViernesSemana(fechaInicio) {
   let fecha = new Date(fechaInicio);
-  let day = fecha.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-
-  // Si es sábado (6) o domingo (0), ir al lunes siguiente
+  let day = fecha.getDay();
   if(day === 6) { // sábado
     fecha.setDate(fecha.getDate() + 2);
   } else if(day === 0) { // domingo
     fecha.setDate(fecha.getDate() + 1);
   }
-  // Ahora, ir al lunes de la semana de la fecha (ya corregida)
   day = fecha.getDay();
   let diffToMonday = day === 0 ? -6 : 1 - day;
   let lunes = new Date(fecha);
@@ -239,19 +233,13 @@ function getLunesViernesSemana(fechaInicio) {
   return { lunes, viernes };
 }
 
-
-
 // --- BLOQUE DE PROMOCIÓN SEMANAL ---
 document.getElementById('btn-promocion-semanal').addEventListener('click', function() {
-  // Quita el focus automático (por si accidentalmente lo ejecutas desde el submit)
   document.activeElement && document.activeElement.blur && document.activeElement.blur();
-
-  // --- Nueva lógica ---
   const nombre = document.getElementById('nombre-nino').value.trim();
   const fechaSeleccionada = document.getElementById('fecha-pedido').value;
   const observaciones = document.getElementById('observaciones').value.trim();
   const pagado = document.getElementById('metodo-pago').value === "Pagado";
-
   if (!nombre || nombre.length < 2) {
     document.getElementById('msg-promocion').textContent = 'Debes elegir un nombre válido';
     return;
@@ -260,18 +248,13 @@ document.getElementById('btn-promocion-semanal').addEventListener('click', funct
     document.getElementById('msg-promocion').textContent = 'Debes elegir una fecha válida';
     return;
   }
-
-    let {lunes} = getLunesViernesSemana(fechaSeleccionada);
-
-  // Calcula fechas lunes a viernes
+  let {lunes} = getLunesViernesSemana(fechaSeleccionada);
   let fechasSemana = [];
   let tmp = new Date(lunes);
   for (let i=0; i<5; i++) {
     fechasSemana.push(formato(tmp));
     tmp.setDate(tmp.getDate()+1);
   }
-
-  // PASO 1: Chequear si ya hay pedido de ALMUERZO para ese alumno en alguno de los días de la semana
   let promesas = fechasSemana.map(f =>
     db.ref('pedidos')
       .orderByChild('fecha')
@@ -286,7 +269,6 @@ document.getElementById('btn-promocion-semanal').addEventListener('click', funct
         return {fecha: f, yaHay};
       })
   );
-
   Promise.all(promesas).then(resultados => {
     let conflictivos = resultados.filter(r => r.yaHay);
     if (conflictivos.length > 0) {
@@ -296,7 +278,6 @@ document.getElementById('btn-promocion-semanal').addEventListener('click', funct
         ". Elimina esos pedidos antes de registrar una nueva promoción semanal.";
       return;
     }
-    // PASO 2: Para cada día, obtener el menú del día y registrar
     let registros = fechasSemana.map(f => {
       return db.ref('Almuerzos/' + f).once('value').then(snapMenu => {
         let menuDia = snapMenu.val() || {};
@@ -322,7 +303,6 @@ document.getElementById('btn-promocion-semanal').addEventListener('click', funct
         return nuevoRef.set(pedido);
       });
     });
-
     Promise.all(registros).then(()=>{
       document.getElementById('msg-promocion').textContent = "¡Promoción semanal registrada correctamente!";
       document.getElementById('form-pedido').reset();
@@ -355,7 +335,6 @@ window.filtrarPlatos = function(mantenerAbierto = false) {
     };
     sugerencias.appendChild(div);
   });
-
   sugerencias.classList.add('active');
 };
 document.getElementById('menu-dia').addEventListener('input', function(){
@@ -445,6 +424,7 @@ document.getElementById('nombre-nino').addEventListener('keydown', function(e){
 });
 
 // -------------------- FILTRO FECHA MOSTRAR PEDIDOS ---------------------
+document.getElementById('fecha-mostrar').value = fechaStr;
 document.getElementById('fecha-mostrar').addEventListener('change', function(){
   const fecha = this.value || fechaStr;
   cargarPedidos(fecha);
@@ -456,7 +436,6 @@ document.getElementById('form-pedido').addEventListener('submit', function(e) {
   const nombre = document.getElementById('nombre-nino').value.trim();
   const fecha = document.getElementById('fecha-pedido').value;
   const tipo = document.getElementById('tipo-pedido').value;
-
   let menu = '', entrada = '', postre = '';
   if (tipo === "Desayunos") {
     menu = document.getElementById('bebidas-producto').value;
@@ -471,15 +450,12 @@ document.getElementById('form-pedido').addEventListener('submit', function(e) {
     entrada = document.getElementById('entrada').value;
     postre = document.getElementById('postre').value;
   }
-
   const pagado = document.getElementById('metodo-pago').value === "Pagado";
   const observaciones = document.getElementById('observaciones').value.trim();
-
   if (!nombre || nombre.length < 2) {
     alert('Debes elegir un nombre válido');
     return;
   }
-
   // Para Almuerzo, revisa que NO exista ya pedido ese día para ese alumno
   if (tipo === "Almuerzo") {
     db.ref('pedidos')
@@ -500,7 +476,6 @@ document.getElementById('form-pedido').addEventListener('submit', function(e) {
   } else {
     guardarPedido();
   }
-
   function guardarPedido() {
     const nuevoRef = window._editandoPedidoID
       ? db.ref('pedidos/' + window._editandoPedidoID)
@@ -595,7 +570,6 @@ window.editarPedido = function(id) {
     document.getElementById('observaciones').value = p.observaciones || "";
     actualizarLabelsPorTipo();
     cargarMenuPorFechaYTipo();
-
     if (p.tipo === "Desayunos") {
       setTimeout(() => {
         document.getElementById('bebidas-producto').value = p.menu || "";
@@ -731,5 +705,4 @@ window.exportarExcel = function() {
 };
 
 // Mostrar pedidos de hoy al iniciar
-document.getElementById('fecha-mostrar').value = fechaStr;
 cargarPedidos(fechaStr);
