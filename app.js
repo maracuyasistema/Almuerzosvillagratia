@@ -579,7 +579,7 @@ window.editarPedido = function(id) {
   db.ref('pedidos/' + id).once('value').then(snap => {
     const p = snap.val();
     if (!p) return alert('Pedido no encontrado');
-    document.getElementById('').value = p.nombre;
+   document.getElementById('nombre-nino').value = p.nombre;
     document.getElementById('fecha-pedido').value = p.fecha;
     document.getElementById('tipo-pedido').value = p.tipo;
     document.getElementById('observaciones').value = p.observaciones || "";
