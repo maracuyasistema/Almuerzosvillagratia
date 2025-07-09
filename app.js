@@ -363,7 +363,6 @@ window.alumnoSeleccionadoKey = '';
 
 // --- MODIFICADO: Mostrar botón editar si existe alumno ---
 const nombreNinoInput = document.getElementById('nombre-nino');
-const btnEditarEst = document.getElementById('btn-editar-estudiante');
 nombreNinoInput.addEventListener('input', function() {
   const valor = this.value.trim().toLowerCase();
   let keyFound = '';
