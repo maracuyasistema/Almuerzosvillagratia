@@ -740,6 +740,7 @@ const gradosPorNivel = {
 };
 
 const btnAgregarEst = document.getElementById('btn-agregar-estudiante');
+const btnEditarEst = document.getElementById('btn-editar-estudiante');
 const modalBg = document.getElementById('modal-estudiante-bg');
 const modalTitulo = document.getElementById('modal-estudiante-titulo');
 const formEst = document.getElementById('form-estudiante');
@@ -749,6 +750,8 @@ const selectNivel = document.getElementById('modal-nivel');
 const selectGrado = document.getElementById('modal-grado');
 const inputSalon = document.getElementById('modal-salon');
 const btnCerrarModal = document.getElementById('btn-cerrar-modal-est');
+
+window.listaAlumnos = window.listaAlumnos || []; // Global única
 
 // Cambia los grados según el nivel elegido
 selectNivel.onchange = function() {
@@ -761,25 +764,33 @@ selectNivel.onchange = function() {
   }
 };
 
-// 1. Configuración correcta inicial
-window.listaAlumnos = []; // Que sea global y única
+// Cerrar modal (función universal)
+function cerrarModalEstudiante() {
+  modalBg.style.display = 'none';
+}
 
-// 2. Mostrar modal para agregar estudiante
+// 1. Mostrar modal para agregar estudiante
 btnAgregarEst.onclick = function() {
   formEst.reset();
   msgEst.textContent = '';
   modalTitulo.textContent = 'Agregar estudiante';
   formEst.dataset.mode = 'agregar';
   formEst.dataset.key = '';
-  modalBg.style.display = 'block';
+  modalBg.style.display = 'flex';
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
-// 3. Mostrar modal para editar estudiante
+// 2. Mostrar modal para editar estudiante
 btnEditarEst.onclick = function() {
-  if(!window.alumnoSeleccionadoKey) return;
+  if(!window.alumnoSeleccionadoKey) {
+    alert("Selecciona un estudiante existente para editar.");
+    return;
+  }
   const alum = window.listaAlumnos.find(a => a._id === window.alumnoSeleccionadoKey);
-  if(!alum) return;
+  if(!alum) {
+    alert('No se encontró el estudiante.');
+    return;
+  }
   formEst.reset();
   msgEst.textContent = '';
   modalTitulo.textContent = 'Editar estudiante';
@@ -790,17 +801,17 @@ btnEditarEst.onclick = function() {
   inputSalon.value = alum.Salon || '';
   formEst.dataset.mode = 'editar';
   formEst.dataset.key = alum._id;
-  modalBg.style.display = 'block';
+  modalBg.style.display = 'flex';
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
-// 4. Cerrar modal al hacer click fuera o cancelar
-btnCerrarModal.onclick = () => { modalBg.style.display = 'none'; };
+// 3. Cerrar modal al hacer click fuera o cancelar
+btnCerrarModal.onclick = cerrarModalEstudiante;
 modalBg.onclick = function(e){
-  if(e.target === modalBg) modalBg.style.display = 'none';
+  if(e.target === modalBg) cerrarModalEstudiante();
 };
 
-// 5. Guardar estudiante (agregar o editar)
+// 4. Guardar estudiante (agregar o editar)
 formEst.onsubmit = e => {
   e.preventDefault();
   let nombre = inputNombre.value.trim();
@@ -821,8 +832,8 @@ formEst.onsubmit = e => {
       Salon: salon
     }).then(()=>{
       msgEst.textContent = '¡Estudiante actualizado!';
-      modalBg.style.display = 'none';
-      // Recargar lista alumnos
+      cerrarModalEstudiante();
+      // Refrescar lista de alumnos después de editar
       db.ref('Nombres').once('value', snap => {
         window.listaAlumnos = [];
         snap.forEach(child => {
@@ -846,8 +857,8 @@ formEst.onsubmit = e => {
       Salon: salon
     }).then(()=>{
       msgEst.textContent = '¡Estudiante agregado!';
-      modalBg.style.display = 'none';
-      // Recargar lista alumnos
+      cerrarModalEstudiante();
+      // Refrescar lista de alumnos después de agregar
       db.ref('Nombres').once('value', snap => {
         window.listaAlumnos = [];
         snap.forEach(child => {
@@ -858,4 +869,3 @@ formEst.onsubmit = e => {
   }
 };
 
-cargarPedidos(fechaStr);
