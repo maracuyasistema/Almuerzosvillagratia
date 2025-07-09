@@ -236,7 +236,7 @@ function getLunesViernesSemana(fechaInicio) {
 // --- BLOQUE DE PROMOCIÓN SEMANAL ---
 document.getElementById('btn-promocion-semanal').addEventListener('click', function() {
   document.activeElement && document.activeElement.blur && document.activeElement.blur();
-  const nombre = document.getElementById('nombre-nino').value.trim();
+  const nombre = document.getElementById('').value.trim();
   const fechaSeleccionada = document.getElementById('fecha-pedido').value;
   const observaciones = document.getElementById('observaciones').value.trim();
   const pagado = document.getElementById('metodo-pago').value === "Pagado";
@@ -348,6 +348,8 @@ document.getElementById('menu-dia').addEventListener('focus', function(){
 
 // --- AUTOCOMPLETADO DE NOMBRES ---
 let listaAlumnos = [];
+window.alumnoSeleccionadoKey = '';
+window.alumnoSeleccionadoNombre = '';
 db.ref('Nombres').on('value', snap => {
   listaAlumnos = [];
   snap.forEach(child => {
@@ -364,34 +366,24 @@ window.alumnoSeleccionadoKey = '';
 // --- MODIFICADO: Mostrar botón editar si existe alumno ---
 const nombreNinoInput = document.getElementById('nombre-nino');
 nombreNinoInput.addEventListener('input', function() {
-  const valor = this.value.trim().toLowerCase();
-  let keyFound = '';
-  for (let i = 0; i < window.listaAlumnos.length; i++) {
-    let alumno = window.listaAlumnos[i];
-    if (alumno.Nombre && alumno.Nombre.trim().toLowerCase() === valor) {
-      keyFound = alumno._id;
-      break;
-    }
-  }
-  window.alumnoSeleccionadoKey = keyFound;
-  if(keyFound) {
-    btnEditarEst.style.display = '';
-  } else {
+  // Si el input no coincide con la última selección, resetea selección
+  if (this.value !== window.alumnoSeleccionadoNombre) {
     btnEditarEst.style.display = 'none';
+    window.alumnoSeleccionadoKey = '';
+    window.alumnoSeleccionadoNombre = '';
   }
+  window.filtrarNombres && window.filtrarNombres();
 });
+
 
 window.filtrarNombres = function() {
   const input = document.getElementById('nombre-nino');
   const nombreInput = input.value.trim().toLowerCase();
   const sugerencias = document.getElementById('sugerenciasNombres');
   sugerencias.innerHTML = "";
+
   if (nombreInput.length < 2) {
     sugerencias.classList.remove('active');
-    document.getElementById('infoAlumno').innerHTML = '';
-    window._gradoSeleccionado = '';
-    window._nivelSeleccionado = '';
-    window._salonSeleccionado = '';
     return;
   }
   if (!listaAlumnos.length) {
@@ -407,9 +399,6 @@ window.filtrarNombres = function() {
     sugerencias.classList.remove('active');
     document.getElementById('infoAlumno').innerHTML =
       '<span style="color: #999; font-size: 0.9em;">Sin coincidencias.</span>';
-    window._gradoSeleccionado = '';
-    window._nivelSeleccionado = '';
-    window._salonSeleccionado = '';
     return;
   }
   encontrados.forEach(alum => {
@@ -417,6 +406,10 @@ window.filtrarNombres = function() {
     div.textContent = alum.Nombre + " (" + (alum.Grado || '-') + ", " + (alum.Salon || '-') + ")";
     div.onclick = function() {
       input.value = alum.Nombre;
+      // <<< NUEVO: Guarda el key y nombre seleccionados >>>
+      window.alumnoSeleccionadoKey = alum._id;
+      window.alumnoSeleccionadoNombre = alum.Nombre;
+      btnEditarEst.style.display = '';
       document.getElementById('infoAlumno').innerHTML = `
         <p><strong>Nombre:</strong> ${alum.Nombre || ''}</p>
         <p><strong>Grado:</strong> ${alum.Grado || ''}</p>
@@ -427,13 +420,12 @@ window.filtrarNombres = function() {
       window._gradoSeleccionado = alum.Grado || '';
       window._nivelSeleccionado = alum.Nivel || '';
       window._salonSeleccionado = alum.Salon || '';
-      window.alumnoSeleccionadoKey = alum._id || '';
-      btnEditarEst.style.display = '';
     };
     sugerencias.appendChild(div);
   });
   sugerencias.classList.add('active');
 };
+
 document.getElementById('nombre-nino').addEventListener('input', filtrarNombres);
 document.getElementById('nombre-nino').addEventListener('focus', filtrarNombres);
 
@@ -587,7 +579,7 @@ window.editarPedido = function(id) {
   db.ref('pedidos/' + id).once('value').then(snap => {
     const p = snap.val();
     if (!p) return alert('Pedido no encontrado');
-    document.getElementById('nombre-nino').value = p.nombre;
+    document.getElementById('').value = p.nombre;
     document.getElementById('fecha-pedido').value = p.fecha;
     document.getElementById('tipo-pedido').value = p.tipo;
     document.getElementById('observaciones').value = p.observaciones || "";
