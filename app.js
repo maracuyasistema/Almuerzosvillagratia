@@ -761,7 +761,10 @@ selectNivel.onchange = function() {
   }
 };
 
-// Mostrar modal para agregar estudiante
+// 1. Configuración correcta inicial
+window.listaAlumnos = []; // Que sea global y única
+
+// 2. Mostrar modal para agregar estudiante
 btnAgregarEst.onclick = function() {
   formEst.reset();
   msgEst.textContent = '';
@@ -772,7 +775,7 @@ btnAgregarEst.onclick = function() {
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
-// Mostrar modal para editar estudiante
+// 3. Mostrar modal para editar estudiante
 btnEditarEst.onclick = function() {
   if(!window.alumnoSeleccionadoKey) return;
   const alum = window.listaAlumnos.find(a => a._id === window.alumnoSeleccionadoKey);
@@ -791,13 +794,13 @@ btnEditarEst.onclick = function() {
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
-// Cerrar modal
+// 4. Cerrar modal al hacer click fuera o cancelar
 btnCerrarModal.onclick = () => { modalBg.style.display = 'none'; };
 modalBg.onclick = function(e){
   if(e.target === modalBg) modalBg.style.display = 'none';
 };
 
-// Guardar estudiante
+// 5. Guardar estudiante (agregar o editar)
 formEst.onsubmit = e => {
   e.preventDefault();
   let nombre = inputNombre.value.trim();
