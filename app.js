@@ -776,7 +776,8 @@ btnEditarEst.onclick = function() {
     alert("Selecciona un estudiante existente para editar.");
     return;
   }
-  const alum = window.listaAlumnos.find(a => a._id === window.alumnoSeleccionadoKey);
+ const alumnosArr = window.listaAlumnos && window.listaAlumnos.length ? window.listaAlumnos : (typeof listaAlumnos !== "undefined" ? listaAlumnos : []);
+const alum = alumnosArr.find(a => a._id === window.alumnoSeleccionadoKey);
   if(!alum) {
     alert('No se encontró el estudiante.');
     return;
