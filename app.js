@@ -27,7 +27,6 @@ let listaJugos = [];
 let listaFondos = [];
 let listaPlatosVariados = [];
 
-// --- CARGA LOS PLATOS FIJOS AL INICIAR ---
 db.ref('Jugos').on('value', snap => {
   listaJugos = [];
   snap.forEach(child => {
@@ -50,7 +49,7 @@ db.ref('Variados').on('value', snap => {
   });
 });
 
-// ------------------- SELECTS DEPENDIENTES DESAYUNO (BEBIDAS Y FONDO) -------------------
+// ------------------- SELECTS DEPENDIENTES DESAYUNO -------------------
 let categoriasBebidas = [];
 let productosPorCategoriaBebidas = {};
 let categoriasFondo = [];
@@ -62,7 +61,6 @@ function cargarDesayunoFirebase() {
     productosPorCategoriaBebidas = {};
     categoriasFondo = [];
     productosPorCategoriaFondo = {};
-
     snap.forEach(child => {
       const val = child.val();
       // Bebidas
@@ -82,15 +80,12 @@ function cargarDesayunoFirebase() {
         productosPorCategoriaFondo[val.categoria].push(val.producto);
       }
     });
-
-    // Llenar selects de categoría y limpiar producto
     llenarSelectSimple('bebidas-categoria', categoriasBebidas);
     llenarSelectSimple('fondo-categoria', categoriasFondo);
     llenarSelectSimple('bebidas-producto', []);
     llenarSelectSimple('fondo-producto', []);
   });
 }
-
 function llenarSelectSimple(id, array) {
   const sel = document.getElementById(id);
   if(!sel) return;
@@ -99,42 +94,27 @@ function llenarSelectSimple(id, array) {
     sel.innerHTML += `<option value="${val}">${val}</option>`;
   });
 }
-
 document.addEventListener('DOMContentLoaded', function() {
   cargarDesayunoFirebase();
-
-  // Bebidas dependientes
   document.getElementById('bebidas-categoria').addEventListener('change', function(){
     const cat = this.value;
     llenarSelectSimple('bebidas-producto', cat ? productosPorCategoriaBebidas[cat] : []);
   });
-  // Fondo dependientes
   document.getElementById('fondo-categoria').addEventListener('change', function(){
     const cat = this.value;
     llenarSelectSimple('fondo-producto', cat ? productosPorCategoriaFondo[cat] : []);
   });
 });
 
-// Si quieres resetear el bloque al cambiar tipo-pedido
-document.getElementById('tipo-pedido').addEventListener('change', function(){
-  if(this.value === "Desayunos") cargarDesayunoFirebase();
-  mostrarOcultarPromoBtn();
-  actualizarLabelsPorTipo();
-  cargarMenuPorFechaYTipo();
-});
-
 // --- CAMBIAR LABELS Y OCULTAR/mostrar INPUTS SEGÚN TIPO ---
 function actualizarLabelsPorTipo() {
   const tipo = document.getElementById('tipo-pedido').value;
-  // Mostrar bloque desayuno solo si corresponde
   const bloqueDesayuno = document.getElementById('bloque-desayuno');
   const bloqueGeneral = document.getElementById('bloque-general');
   if(bloqueDesayuno && bloqueGeneral) {
     bloqueDesayuno.style.display = (tipo === "Desayunos") ? '' : 'none';
     bloqueGeneral.style.display = (tipo === "Desayunos") ? 'none' : '';
   }
-
-  // Ocultar entrada/postre si es Variado
   const grupoEntrada = document.getElementById('grupo-entrada');
   const grupoPostre = document.getElementById('grupo-postre');
   if (tipo === "Variado") {
@@ -150,12 +130,9 @@ function actualizarLabelsPorTipo() {
     if (grupoEntrada) grupoEntrada.style.display = '';
     if (grupoPostre) grupoPostre.style.display = '';
   }
-
   document.getElementById('label-menu-dia').textContent = (tipo === "Desayunos") ? "Jugo" : "Plato";
   document.getElementById('label-entrada').textContent = (tipo === "Desayunos") ? "Fondo" : "Entrada";
   document.getElementById('label-postre').textContent = (tipo === "Desayunos") ? "" : "Postre";
-
-  // Habilitar/Deshabilitar inputs menú/entrada solo si NO es desayuno
   const menuInput = document.getElementById('menu-dia');
   const entradaInput = document.getElementById('entrada');
   if (menuInput && entradaInput) {
@@ -172,6 +149,12 @@ function actualizarLabelsPorTipo() {
     }
   }
 }
+document.getElementById('tipo-pedido').addEventListener('change', function(){
+  if(this.value === "Desayunos") cargarDesayunoFirebase();
+  mostrarOcultarPromoBtn();
+  actualizarLabelsPorTipo();
+  cargarMenuPorFechaYTipo();
+});
 document.getElementById('tipo-pedido').addEventListener('change', actualizarLabelsPorTipo);
 actualizarLabelsPorTipo();
 
@@ -199,31 +182,319 @@ document.getElementById('tipo-pedido').addEventListener('change', cargarMenuPorF
 cargarMenuPorFechaYTipo();
 actualizarLabelsPorTipo();
 
-function mostrarOcultarPromoBtn() {
+// --- AUTOCOMPLETADO DE VARIADOS ---
+window.filtrarPlatos = function(mantenerAbierto = false) {
   const tipo = document.getElementById('tipo-pedido').value;
-  document.getElementById('bloque-promocion-btn').style.display = (tipo === "Almuerzo") ? '' : 'none';
-  // Al cambiar, siempre ocultar el formulario de promo semanal
-  document.getElementById('promo-semanal-block').style.display = 'none';
-  document.getElementById('msg-promocion').textContent = '';
-}
-mostrarOcultarPromoBtn();
+  if (tipo !== "Variado") return;
+  const input = document.getElementById('menu-dia');
+  const sugerencias = document.getElementById('sugerenciasPlatos');
+  const val = input.value.trim().toLowerCase();
+  sugerencias.innerHTML = "";
+  if (val.length < 1) { sugerencias.classList.remove('active'); return; }
+  const encontrados = listaPlatosVariados.filter(j => j.toLowerCase().includes(val));
+  encontrados.forEach(j => {
+    let div = document.createElement('div');
+    div.textContent = j;
+    div.onclick = function(e) {
+      input.value = j;
+      sugerencias.classList.remove('active');
+      sugerencias.innerHTML = "";
+    };
+    sugerencias.appendChild(div);
+  });
+  sugerencias.classList.add('active');
+};
+document.getElementById('menu-dia').addEventListener('input', function(){
+  const tipo = document.getElementById('tipo-pedido').value;
+  if (tipo === "Variado") filtrarPlatos(true);
+});
+document.getElementById('menu-dia').addEventListener('focus', function(){
+  const tipo = document.getElementById('tipo-pedido').value;
+  if (tipo === "Variado") filtrarPlatos(true);
+});
 
+// ----------- AUTOCOMPLETADO DE NOMBRES Y GESTIÓN DE SELECCIÓN -----------
+window.listaAlumnos = [];
+window.alumnoSeleccionadoKey = '';
+window.alumnoSeleccionadoNombre = '';
+window._gradoSeleccionado = '';
+window._nivelSeleccionado = '';
+window._salonSeleccionado = '';
+
+const nombreNinoInput = document.getElementById('nombre-nino');
+const btnEditarEst = document.getElementById('btn-editar-estudiante');
+
+db.ref('Nombres').on('value', snap => {
+  window.listaAlumnos = [];
+  snap.forEach(child => {
+    const val = child.val();
+    val._id = child.key;
+    window.listaAlumnos.push(val);
+  });
+});
+
+window.filtrarNombres = function() {
+  const input = nombreNinoInput;
+  const nombreInput = input.value.trim().toLowerCase();
+  const sugerencias = document.getElementById('sugerenciasNombres');
+  sugerencias.innerHTML = "";
+
+  if (nombreInput.length < 2) {
+    sugerencias.classList.remove('active');
+    return;
+  }
+  if (!window.listaAlumnos.length) {
+    sugerencias.classList.remove('active');
+    document.getElementById('infoAlumno').innerHTML =
+      '<span style="color: #999; font-size: 0.9em;">Cargando estudiantes...</span>';
+    return;
+  }
+  const encontrados = window.listaAlumnos.filter(alum =>
+    alum.Nombre && alum.Nombre.toLowerCase().includes(nombreInput)
+  );
+  if (!encontrados.length) {
+    sugerencias.classList.remove('active');
+    document.getElementById('infoAlumno').innerHTML =
+      '<span style="color: #999; font-size: 0.9em;">Sin coincidencias.</span>';
+    return;
+  }
+  encontrados.forEach(alum => {
+    let div = document.createElement('div');
+    div.textContent = alum.Nombre + " (" + (alum.Grado || '-') + ", " + (alum.Salon || '-') + ")";
+    div.onclick = function() {
+      input.value = alum.Nombre;
+      window.alumnoSeleccionadoKey = alum._id;
+      window.alumnoSeleccionadoNombre = alum.Nombre;
+      window._gradoSeleccionado = alum.Grado || '';
+      window._nivelSeleccionado = alum.Nivel || '';
+      window._salonSeleccionado = alum.Salon || '';
+      btnEditarEst.style.display = '';
+      document.getElementById('infoAlumno').innerHTML = `
+        <p><strong>Nombre:</strong> ${alum.Nombre || ''}</p>
+        <p><strong>Grado:</strong> ${alum.Grado || ''}</p>
+        <p><strong>Nivel:</strong> ${alum.Nivel || ''}</p>
+        <p><strong>Salón:</strong> ${alum.Salon || ''}</p>
+      `;
+      sugerencias.classList.remove('active');
+    };
+    sugerencias.appendChild(div);
+  });
+  sugerencias.classList.add('active');
+};
+
+nombreNinoInput.addEventListener('input', function() {
+  if (this.value !== window.alumnoSeleccionadoNombre) {
+    btnEditarEst.style.display = 'none';
+    window.alumnoSeleccionadoKey = '';
+    window.alumnoSeleccionadoNombre = '';
+    window._gradoSeleccionado = '';
+    window._nivelSeleccionado = '';
+    window._salonSeleccionado = '';
+    document.getElementById('infoAlumno').innerHTML = '';
+  }
+  window.filtrarNombres && window.filtrarNombres();
+});
+nombreNinoInput.addEventListener('focus', window.filtrarNombres);
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.form-group')) {
+    document.getElementById('sugerenciasNombres').classList.remove('active');
+  }
+});
+nombreNinoInput.addEventListener('keydown', function(e){
+  if (e.key === 'Enter') e.preventDefault();
+});
+
+// -------------------- FILTRO FECHA MOSTRAR PEDIDOS ---------------------
+document.getElementById('fecha-mostrar').value = fechaStr;
+document.getElementById('fecha-mostrar').addEventListener('change', function(){
+  const fecha = this.value || fechaStr;
+  cargarPedidos(fecha);
+});
+
+// -------------------- REGISTRAR PEDIDO INDIVIDUAL ---------------------
+document.getElementById('form-pedido').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const nombre = nombreNinoInput.value.trim();
+
+  if (!window.alumnoSeleccionadoKey) {
+    alert('Debes seleccionar un alumno de la lista de sugerencias');
+    nombreNinoInput.focus();
+    return;
+  }
+
+  const fecha = document.getElementById('fecha-pedido').value;
+  const tipo = document.getElementById('tipo-pedido').value;
+  let menu = '', entrada = '', postre = '';
+  if (tipo === "Desayunos") {
+    menu = document.getElementById('bebidas-producto').value;
+    entrada = document.getElementById('fondo-producto').value;
+    postre = "";
+  } else if (tipo === "Variado") {
+    menu = document.getElementById('menu-dia').value;
+    entrada = "";
+    postre = "";
+  } else {
+    menu = document.getElementById('menu-dia').value;
+    entrada = document.getElementById('entrada').value;
+    postre = document.getElementById('postre').value;
+  }
+  const pagado = document.getElementById('metodo-pago').value === "Pagado";
+  const observaciones = document.getElementById('observaciones').value.trim();
+
+  if (tipo === "Almuerzo") {
+    db.ref('pedidos')
+      .orderByChild('fecha')
+      .equalTo(fecha)
+      .once('value').then(snap => {
+        let yaHay = false;
+        snap.forEach(child => {
+          let val = child.val();
+          if(val.nombre && val.nombre.toLowerCase() === nombre.toLowerCase() && val.tipo === "Almuerzo") yaHay = true;
+        });
+        if (yaHay) {
+          alert('¡Este alumno ya tiene pedido de almuerzo para ese día!');
+          return;
+        }
+        guardarPedido();
+      });
+  } else {
+    guardarPedido();
+  }
+  function guardarPedido() {
+    const nuevoRef = window._editandoPedidoID
+      ? db.ref('pedidos/' + window._editandoPedidoID)
+      : db.ref('pedidos').push();
+    const pedido = {
+      id: nuevoRef.key,
+      nombre,
+      fecha,
+      tipo,
+      menu,
+      entrada,
+      postre,
+      pagado,
+      estado: "Pendiente",
+      observaciones,
+      grado: window._gradoSeleccionado || '',
+      nivel: window._nivelSeleccionado || '',
+      salon: window._salonSeleccionado || ''
+    };
+    nuevoRef.set(pedido).then(()=>{
+      document.getElementById('form-pedido').reset();
+      document.getElementById('fecha-pedido').value = fechaStr;
+      document.getElementById('infoAlumno').innerHTML = '';
+      window._gradoSeleccionado = '';
+      window._nivelSeleccionado = '';
+      window._salonSeleccionado = '';
+      window.alumnoSeleccionadoKey = '';
+      window.alumnoSeleccionadoNombre = '';
+      window._editandoPedidoID = null;
+      cargarMenuPorFechaYTipo();
+      actualizarLabelsPorTipo();
+      cargarPedidos(document.getElementById('fecha-mostrar').value || fechaStr);
+      alert("Pedido registrado exitosamente!");
+    });
+  }
+});
+
+// -------------------- CARGAR PEDIDOS DE UNA FECHA --------------------
+function cargarPedidos(fecha) {
+  db.ref('pedidos').orderByChild('fecha').equalTo(fecha).on('value', snap => {
+    const pedidos = snap.val() || {};
+    renderizaPedidos(Object.values(pedidos));
+    resumenPedidos(Object.values(pedidos));
+  });
+}
+
+// -------------- RENDERIZAR TABLA --------------
+function renderizaPedidos(lista) {
+  const tbody = document.getElementById('tbody-pedidos');
+  tbody.innerHTML = "";
+  if(!lista.length){
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;">No hay pedidos hoy.</td></tr>`;
+    return;
+  }
+  lista.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.nombre || '-'}</td>
+        <td>${p.tipo || '-'}</td>
+        <td>${p.menu||'-'}<br><span class="small">${p.entrada||''} ${p.postre&&p.postre!=="nullahi" ? '· '+p.postre : ''}</span></td>
+        <td><span class="badge badge-${p.pagado ? 'pagado' : 'pendiente'}">${p.pagado ? 'Pagado' : 'Pendiente'}</span></td>
+        <td><span class="badge badge-${p.estado==='Pendiente'?'pendiente':(p.estado==='Entregado'?'pagado':'rechazado')}">${p.estado}</span></td>
+        <td>${p.observaciones || "—"}</td>
+        <td>
+          ${p.estado === "Pendiente" ? `
+            <button class="btn-tabla btn-mini btn-green" onclick="marcarEntregado('${p.id}')">Entregar</button>
+            <button class="btn-tabla btn-mini btn-red" onclick="rechazarPedido('${p.id}')">Rechazar</button>
+          ` : ""}
+          <button class="btn-tabla btn-mini btn-azul" onclick="editarPedido('${p.id}')">Editar</button>
+          <button class="btn-tabla btn-mini btn-grey" onclick="eliminarPedido('${p.id}')">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// --------- ACCIONES DE PEDIDO ---------
+window.marcarEntregado = function(id){
+  db.ref('pedidos/' + id).update({estado: "Entregado"});
+}
+window.rechazarPedido = function(id){
+  db.ref('pedidos/' + id).update({estado: "Rechazado"});
+}
+window.eliminarPedido = function(id){
+  if(confirm("¿Eliminar pedido?")) db.ref('pedidos/' + id).remove();
+}
+window.editarPedido = function(id) {
+  db.ref('pedidos/' + id).once('value').then(snap => {
+    const p = snap.val();
+    if (!p) return alert('Pedido no encontrado');
+    document.getElementById('nombre-nino').value = p.nombre;
+    document.getElementById('fecha-pedido').value = p.fecha;
+    document.getElementById('tipo-pedido').value = p.tipo;
+    document.getElementById('observaciones').value = p.observaciones || "";
+    actualizarLabelsPorTipo();
+    cargarMenuPorFechaYTipo();
+    if (p.tipo === "Desayunos") {
+      setTimeout(() => {
+        document.getElementById('bebidas-producto').value = p.menu || "";
+        document.getElementById('fondo-producto').value = p.entrada || "";
+      }, 350);
+    } else if (p.tipo === "Variado") {
+      document.getElementById('menu-dia').value = p.menu || "";
+    } else {
+      document.getElementById('menu-dia').value = p.menu || "";
+      document.getElementById('entrada').value = p.entrada || "";
+      document.getElementById('postre').value = p.postre || "";
+    }
+    document.getElementById('metodo-pago').value = p.pagado ? "Pagado" : "Credito";
+    window._editandoPedidoID = id;
+    // Busca al alumno seleccionado y vuelve a setear los datos globales de grado/nivel/salon
+    const alum = window.listaAlumnos.find(a => a.Nombre === p.nombre);
+    if (alum) {
+      window.alumnoSeleccionadoKey = alum._id;
+      window.alumnoSeleccionadoNombre = alum.Nombre;
+      window._gradoSeleccionado = alum.Grado || '';
+      window._nivelSeleccionado = alum.Nivel || '';
+      window._salonSeleccionado = alum.Salon || '';
+      btnEditarEst.style.display = '';
+    }
+  });
+};
+
+// --------- PROMOCIÓN SEMANAL ---------
 function formato(fecha) {
   let yyyy = fecha.getFullYear();
   let mm = (fecha.getMonth()+1).toString().padStart(2, '0');
   let dd = fecha.getDate().toString().padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
-
-// Calcula lunes y viernes para cualquier fecha (yyyy-mm-dd)
 function getLunesViernesSemana(fechaInicio) {
   let fecha = new Date(fechaInicio);
   let day = fecha.getDay();
-  if(day === 6) { // sábado
-    fecha.setDate(fecha.getDate() + 2);
-  } else if(day === 0) { // domingo
-    fecha.setDate(fecha.getDate() + 1);
-  }
+  if(day === 6) { fecha.setDate(fecha.getDate() + 2);}
+  else if(day === 0) {fecha.setDate(fecha.getDate() + 1);}
   day = fecha.getDay();
   let diffToMonday = day === 0 ? -6 : 1 - day;
   let lunes = new Date(fecha);
@@ -232,11 +503,21 @@ function getLunesViernesSemana(fechaInicio) {
   viernes.setDate(lunes.getDate() + 4);
   return { lunes, viernes };
 }
+function mostrarOcultarPromoBtn() {
+  const tipo = document.getElementById('tipo-pedido').value;
+  document.getElementById('bloque-promocion-btn').style.display = (tipo === "Almuerzo") ? '' : 'none';
+  document.getElementById('promo-semanal-block').style.display = 'none';
+  document.getElementById('msg-promocion').textContent = '';
+}
+mostrarOcultarPromoBtn();
 
-// --- BLOQUE DE PROMOCIÓN SEMANAL ---
 document.getElementById('btn-promocion-semanal').addEventListener('click', function() {
   document.activeElement && document.activeElement.blur && document.activeElement.blur();
-  const nombre = document.getElementById('').value.trim();
+  const nombre = nombreNinoInput.value.trim();
+  if (!window.alumnoSeleccionadoKey) {
+    document.getElementById('msg-promocion').textContent = 'Selecciona un alumno válido';
+    return;
+  }
   const fechaSeleccionada = document.getElementById('fecha-pedido').value;
   const observaciones = document.getElementById('observaciones').value.trim();
   const pagado = document.getElementById('metodo-pago').value === "Pagado";
@@ -315,266 +596,7 @@ document.getElementById('btn-promocion-semanal').addEventListener('click', funct
   });
 });
 
-// --- AUTOCOMPLETADO DE VARIADOS ---
-// --- AUTOCOMPLETADO DE NOMBRES ---
-window.listaAlumnos = [];
-window.alumnoSeleccionadoKey = '';
-window.alumnoSeleccionadoNombre = '';
-window._gradoSeleccionado = '';
-window._nivelSeleccionado = '';
-window._salonSeleccionado = '';
-
-db.ref('Nombres').on('value', snap => {
-  window.listaAlumnos = [];
-  snap.forEach(child => {
-    const val = child.val();
-    val._id = child.key;
-    window.listaAlumnos.push(val);
-  });
-});
-
-const nombreNinoInput = document.getElementById('nombre-nino');
-const btnEditarEst = document.getElementById('btn-editar-estudiante');
-
-window.filtrarNombres = function() {
-  const input = nombreNinoInput;
-  const nombreInput = input.value.trim().toLowerCase();
-  const sugerencias = document.getElementById('sugerenciasNombres');
-  sugerencias.innerHTML = "";
-
-  if (nombreInput.length < 2) {
-    sugerencias.classList.remove('active');
-    return;
-  }
-  if (!window.listaAlumnos.length) {
-    sugerencias.classList.remove('active');
-    document.getElementById('infoAlumno').innerHTML =
-      '<span style="color: #999; font-size: 0.9em;">Cargando estudiantes...</span>';
-    return;
-  }
-  const encontrados = window.listaAlumnos.filter(alum =>
-    alum.Nombre && alum.Nombre.toLowerCase().includes(nombreInput)
-  );
-  if (!encontrados.length) {
-    sugerencias.classList.remove('active');
-    document.getElementById('infoAlumno').innerHTML =
-      '<span style="color: #999; font-size: 0.9em;">Sin coincidencias.</span>';
-    return;
-  }
-  encontrados.forEach(alum => {
-    let div = document.createElement('div');
-    div.textContent = alum.Nombre + " (" + (alum.Grado || '-') + ", " + (alum.Salon || '-') + ")";
-    div.onclick = function() {
-      input.value = alum.Nombre;
-      window.alumnoSeleccionadoKey = alum._id;
-      window.alumnoSeleccionadoNombre = alum.Nombre;
-      window._gradoSeleccionado = alum.Grado || '';
-      window._nivelSeleccionado = alum.Nivel || '';
-      window._salonSeleccionado = alum.Salon || '';
-      btnEditarEst.style.display = '';
-      document.getElementById('infoAlumno').innerHTML = `
-        <p><strong>Nombre:</strong> ${alum.Nombre || ''}</p>
-        <p><strong>Grado:</strong> ${alum.Grado || ''}</p>
-        <p><strong>Nivel:</strong> ${alum.Nivel || ''}</p>
-        <p><strong>Salón:</strong> ${alum.Salon || ''}</p>
-      `;
-      sugerencias.classList.remove('active');
-    };
-    sugerencias.appendChild(div);
-  });
-  sugerencias.classList.add('active');
-};
-
-nombreNinoInput.addEventListener('input', function() {
-  // Si el input no coincide con la última selección, resetea selección
-  if (this.value !== window.alumnoSeleccionadoNombre) {
-    btnEditarEst.style.display = 'none';
-    window.alumnoSeleccionadoKey = '';
-    window.alumnoSeleccionadoNombre = '';
-    window._gradoSeleccionado = '';
-    window._nivelSeleccionado = '';
-    window._salonSeleccionado = '';
-    document.getElementById('infoAlumno').innerHTML = '';
-  }
-  window.filtrarNombres && window.filtrarNombres();
-});
-nombreNinoInput.addEventListener('focus', window.filtrarNombres);
-document.addEventListener('click', function(e){
-  if(!e.target.closest('.form-group')) {
-    document.getElementById('sugerenciasNombres').classList.remove('active');
-  }
-});
-nombreNinoInput.addEventListener('keydown', function(e){
-  if (e.key === 'Enter') e.preventDefault();
-});
-
-// -------------------- 5. Registrar pedido individual ---------------------
-document.getElementById('form-pedido').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const nombre = nombreNinoInput.value.trim();
-
-  // Solo deja registrar si hay key seleccionado (es decir, se eligió desde la lista)
-  if (!window.alumnoSeleccionadoKey) {
-    alert('Debes seleccionar un alumno de la lista de sugerencias');
-    nombreNinoInput.focus();
-    return;
-  }
-
-  const fecha = document.getElementById('fecha-pedido').value;
-  const tipo = document.getElementById('tipo-pedido').value;
-  let menu = '', entrada = '', postre = '';
-  if (tipo === "Desayunos") {
-    menu = document.getElementById('bebidas-producto').value;
-    entrada = document.getElementById('fondo-producto').value;
-    postre = "";
-  } else if (tipo === "Variado") {
-    menu = document.getElementById('menu-dia').value;
-    entrada = "";
-    postre = "";
-  } else {
-    menu = document.getElementById('menu-dia').value;
-    entrada = document.getElementById('entrada').value;
-    postre = document.getElementById('postre').value;
-  }
-  const pagado = document.getElementById('metodo-pago').value === "Pagado";
-  const observaciones = document.getElementById('observaciones').value.trim();
-
-  // Para Almuerzo, revisa que NO exista ya pedido ese día para ese alumno
-  if (tipo === "Almuerzo") {
-    db.ref('pedidos')
-      .orderByChild('fecha')
-      .equalTo(fecha)
-      .once('value').then(snap => {
-        let yaHay = false;
-        snap.forEach(child => {
-          let val = child.val();
-          // Ahora compara por nombre exacto y tipo
-          if(val.nombre && val.nombre.toLowerCase() === nombre.toLowerCase() && val.tipo === "Almuerzo") yaHay = true;
-        });
-        if (yaHay) {
-          alert('¡Este alumno ya tiene pedido de almuerzo para ese día!');
-          return;
-        }
-        guardarPedido();
-      });
-  } else {
-    guardarPedido();
-  }
-  function guardarPedido() {
-    const nuevoRef = window._editandoPedidoID
-      ? db.ref('pedidos/' + window._editandoPedidoID)
-      : db.ref('pedidos').push();
-    const pedido = {
-      id: nuevoRef.key,
-      nombre,
-      fecha,
-      tipo,
-      menu,
-      entrada,
-      postre,
-      pagado,
-      estado: "Pendiente",
-      observaciones,
-      grado: window._gradoSeleccionado || '',
-      nivel: window._nivelSeleccionado || '',
-      salon: window._salonSeleccionado || ''
-    };
-    nuevoRef.set(pedido).then(()=>{
-      document.getElementById('form-pedido').reset();
-      document.getElementById('fecha-pedido').value = fechaStr;
-      document.getElementById('infoAlumno').innerHTML = '';
-      window._gradoSeleccionado = '';
-      window._nivelSeleccionado = '';
-      window._salonSeleccionado = '';
-      window.alumnoSeleccionadoKey = '';
-      window.alumnoSeleccionadoNombre = '';
-      window._editandoPedidoID = null;
-      cargarMenuPorFechaYTipo();
-      actualizarLabelsPorTipo();
-      cargarPedidos(document.getElementById('fecha-mostrar').value || fechaStr);
-      alert("Pedido registrado exitosamente!");
-    });
-  }
-});
-
-
-// 6. Cargar pedidos de una fecha
-function cargarPedidos(fecha) {
-  db.ref('pedidos').orderByChild('fecha').equalTo(fecha).on('value', snap => {
-    const pedidos = snap.val() || {};
-    renderizaPedidos(Object.values(pedidos));
-    resumenPedidos(Object.values(pedidos));
-  });
-}
-
-// 7. Renderizar tabla
-function renderizaPedidos(lista) {
-  const tbody = document.getElementById('tbody-pedidos');
-  tbody.innerHTML = "";
-  if(!lista.length){
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;">No hay pedidos hoy.</td></tr>`;
-    return;
-  }
-  lista.forEach(p => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${p.nombre || '-'}</td>
-        <td>${p.tipo || '-'}</td>
-        <td>${p.menu||'-'}<br><span class="small">${p.entrada||''} ${p.postre&&p.postre!=="nullahi" ? '· '+p.postre : ''}</span></td>
-        <td><span class="badge badge-${p.pagado ? 'pagado' : 'pendiente'}">${p.pagado ? 'Pagado' : 'Pendiente'}</span></td>
-        <td><span class="badge badge-${p.estado==='Pendiente'?'pendiente':(p.estado==='Entregado'?'pagado':'rechazado')}">${p.estado}</span></td>
-        <td>${p.observaciones || "—"}</td>
-        <td>
-          ${p.estado === "Pendiente" ? `
-            <button class="btn-tabla btn-mini btn-green" onclick="marcarEntregado('${p.id}')">Entregar</button>
-            <button class="btn-tabla btn-mini btn-red" onclick="rechazarPedido('${p.id}')">Rechazar</button>
-          ` : ""}
-          <button class="btn-tabla btn-mini btn-azul" onclick="editarPedido('${p.id}')">Editar</button>
-          <button class="btn-tabla btn-mini btn-grey" onclick="eliminarPedido('${p.id}')">Eliminar</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-// 8. Acciones
-window.marcarEntregado = function(id){
-  db.ref('pedidos/' + id).update({estado: "Entregado"});
-}
-window.rechazarPedido = function(id){
-  db.ref('pedidos/' + id).update({estado: "Rechazado"});
-}
-window.eliminarPedido = function(id){
-  if(confirm("¿Eliminar pedido?")) db.ref('pedidos/' + id).remove();
-}
-window.editarPedido = function(id) {
-  db.ref('pedidos/' + id).once('value').then(snap => {
-    const p = snap.val();
-    if (!p) return alert('Pedido no encontrado');
-   document.getElementById('nombre-nino').value = p.nombre;
-    document.getElementById('fecha-pedido').value = p.fecha;
-    document.getElementById('tipo-pedido').value = p.tipo;
-    document.getElementById('observaciones').value = p.observaciones || "";
-    actualizarLabelsPorTipo();
-    cargarMenuPorFechaYTipo();
-    if (p.tipo === "Desayunos") {
-      setTimeout(() => {
-        document.getElementById('bebidas-producto').value = p.menu || "";
-        document.getElementById('fondo-producto').value = p.entrada || "";
-      }, 350);
-    } else if (p.tipo === "Variado") {
-      document.getElementById('menu-dia').value = p.menu || "";
-    } else {
-      document.getElementById('menu-dia').value = p.menu || "";
-      document.getElementById('entrada').value = p.entrada || "";
-      document.getElementById('postre').value = p.postre || "";
-    }
-    document.getElementById('metodo-pago').value = p.pagado ? "Pagado" : "Credito";
-    window._editandoPedidoID = id;
-  });
-};
-
-// 9. Resumen de tarjetas (cuenta niños pequeños: primaria y 1er, 2do, 3er grado)
+// ----------------- RESUMEN DE TARJETAS -----------------
 function resumenPedidos(lista) {
   const total = lista.length;
   const entregados = lista.filter(p=>p.estado==="Entregado").length;
@@ -587,7 +609,6 @@ function resumenPedidos(lista) {
       p.grado.toLowerCase().includes("3er")
     ))
   ).length;
-
   const cards = document.querySelectorAll('.admin-card-num');
   if(cards[0]) cards[0].textContent = total;
   if(cards[1]) cards[1].textContent = entregados;
@@ -595,7 +616,7 @@ function resumenPedidos(lista) {
   if(cards[3]) cards[3].textContent = peque;
 }
 
-// 10. Funciones imprimir/exportar
+// ----------- IMPRIMIR Y EXPORTAR -----------
 window.imprimirPedidos = function() {
   let filas = document.querySelectorAll("#tbody-pedidos tr");
   if (filas.length == 0 || filas[0].children[0].textContent.includes("No hay pedidos")) {
@@ -637,7 +658,6 @@ window.imprimirPedidos = function() {
     <body>
       <h1 style="text-align:center">Pedidos de Hoy</h1>
   `;
-
   filas.forEach(fila => {
     let celdas = fila.children;
     if (celdas.length < 7) return;
@@ -656,12 +676,7 @@ window.imprimirPedidos = function() {
       </div>
     `;
   });
-
-  html += `
-    </body>
-    </html>
-  `;
-
+  html += `</body></html>`;
   let printWindow = window.open('', '', 'width=800,height=600');
   printWindow.document.write(html);
   printWindow.document.close();
@@ -701,7 +716,6 @@ const gradosPorNivel = {
   ]
 };
 const btnAgregarEst = document.getElementById('btn-agregar-estudiante');
-const btnEditarEst = document.getElementById('btn-editar-estudiante');
 const modalBg = document.getElementById('modal-estudiante-bg');
 const modalTitulo = document.getElementById('modal-estudiante-titulo');
 const formEst = document.getElementById('form-estudiante');
@@ -712,9 +726,6 @@ const selectGrado = document.getElementById('modal-grado');
 const inputSalon = document.getElementById('modal-salon');
 const btnCerrarModal = document.getElementById('btn-cerrar-modal-est');
 
-window.listaAlumnos = window.listaAlumnos || []; // Global única
-
-// Cambia los grados según el nivel elegido
 selectNivel.onchange = function() {
   let nivel = this.value;
   selectGrado.innerHTML = '<option value="">Selecciona</option>';
@@ -725,13 +736,11 @@ selectNivel.onchange = function() {
   }
 };
 
-// Cerrar modal (función universal)
 function cerrarModalEstudiante() {
   modalBg.classList.remove('activo');
   msgEst.textContent = '';
 }
 
-// 1. Mostrar modal para agregar estudiante
 btnAgregarEst.onclick = function() {
   formEst.reset();
   msgEst.textContent = '';
@@ -742,14 +751,12 @@ btnAgregarEst.onclick = function() {
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
-// 2. Mostrar modal para editar estudiante
 btnEditarEst.onclick = function() {
   if(!window.alumnoSeleccionadoKey) {
     alert("Selecciona un estudiante existente para editar.");
     return;
   }
- const alumnosArr = window.listaAlumnos && window.listaAlumnos.length ? window.listaAlumnos : (typeof listaAlumnos !== "undefined" ? listaAlumnos : []);
-const alum = alumnosArr.find(a => a._id === window.alumnoSeleccionadoKey);
+  const alum = window.listaAlumnos.find(a => a._id === window.alumnoSeleccionadoKey);
   if(!alum) {
     alert('No se encontró el estudiante.');
     return;
@@ -768,13 +775,11 @@ const alum = alumnosArr.find(a => a._id === window.alumnoSeleccionadoKey);
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
-// 3. Cerrar modal al hacer click fuera o cancelar
 btnCerrarModal.onclick = cerrarModalEstudiante;
 modalBg.onclick = function(e){
   if(e.target === modalBg) cerrarModalEstudiante();
 };
 
-// 4. Guardar estudiante (agregar o editar)
 formEst.onsubmit = e => {
   e.preventDefault();
   let nombre = inputNombre.value.trim();
@@ -795,17 +800,15 @@ formEst.onsubmit = e => {
       Salon: salon
     }).then(()=>{
       msgEst.textContent = '¡Estudiante actualizado!';
-      // Refrescar lista de alumnos después de editar
       db.ref('Nombres').once('value', snap => {
         window.listaAlumnos = [];
         snap.forEach(child => {
           const val = child.val(); val._id = child.key; window.listaAlumnos.push(val);
         });
       });
-      setTimeout(cerrarModalEstudiante, 900); // Cierra después de 0.9s
+      setTimeout(cerrarModalEstudiante, 900);
     });
   } else {
-    // Validar que no exista alumno exacto con ese nombre
     const yaExiste = window.listaAlumnos.some(a =>
       a.Nombre && a.Nombre.trim().toLowerCase() === nombre.toLowerCase()
     );
@@ -820,14 +823,13 @@ formEst.onsubmit = e => {
       Salon: salon
     }).then(()=>{
       msgEst.textContent = '¡Estudiante agregado!';
-      // Refrescar lista de alumnos después de agregar
       db.ref('Nombres').once('value', snap => {
         window.listaAlumnos = [];
         snap.forEach(child => {
           const val = child.val(); val._id = child.key; window.listaAlumnos.push(val);
         });
       });
-      setTimeout(cerrarModalEstudiante, 900); // Cierra después de 0.9s
+      setTimeout(cerrarModalEstudiante, 900);
     });
   }
 };
