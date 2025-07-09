@@ -738,7 +738,6 @@ const gradosPorNivel = {
   ]
 };
 
-const btnAgregarEst = document.getElementById('btn-agregar-estudiante');
 const btnEditarEst = document.getElementById('btn-editar-estudiante');
 const modalBg = document.getElementById('modal-estudiante-bg');
 const modalTitulo = document.getElementById('modal-estudiante-titulo');
