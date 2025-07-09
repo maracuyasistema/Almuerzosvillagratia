@@ -737,7 +737,7 @@ const gradosPorNivel = {
     "1er Año","2do Año","3er Año","4to Año","5to Año"
   ]
 };
-
+const btnAgregarEst = document.getElementById('btn-agregar-estudiante');
 const btnEditarEst = document.getElementById('btn-editar-estudiante');
 const modalBg = document.getElementById('modal-estudiante-bg');
 const modalTitulo = document.getElementById('modal-estudiante-titulo');
