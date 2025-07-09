@@ -728,7 +728,6 @@ window.exportarExcel = function() {
 };
 
 // --------- MODAL DE AGREGAR / EDITAR ESTUDIANTE --------- //
-
 const gradosPorNivel = {
   "Primaria": [
     "1er Grado","2do Grado","3er Grado","4to Grado","5to Grado","6to Grado"
@@ -764,7 +763,8 @@ selectNivel.onchange = function() {
 
 // Cerrar modal (función universal)
 function cerrarModalEstudiante() {
-  modalBg.style.display = 'none';
+  modalBg.classList.remove('activo');
+  msgEst.textContent = '';
 }
 
 // 1. Mostrar modal para agregar estudiante
@@ -774,7 +774,7 @@ btnAgregarEst.onclick = function() {
   modalTitulo.textContent = 'Agregar estudiante';
   formEst.dataset.mode = 'agregar';
   formEst.dataset.key = '';
-  modalBg.style.display = 'flex';
+  modalBg.classList.add('activo');
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
@@ -799,7 +799,7 @@ btnEditarEst.onclick = function() {
   inputSalon.value = alum.Salon || '';
   formEst.dataset.mode = 'editar';
   formEst.dataset.key = alum._id;
-  modalBg.style.display = 'flex';
+  modalBg.classList.add('activo');
   setTimeout(()=>inputNombre.focus(), 180);
 };
 
@@ -830,7 +830,6 @@ formEst.onsubmit = e => {
       Salon: salon
     }).then(()=>{
       msgEst.textContent = '¡Estudiante actualizado!';
-      cerrarModalEstudiante();
       // Refrescar lista de alumnos después de editar
       db.ref('Nombres').once('value', snap => {
         window.listaAlumnos = [];
@@ -838,6 +837,7 @@ formEst.onsubmit = e => {
           const val = child.val(); val._id = child.key; window.listaAlumnos.push(val);
         });
       });
+      setTimeout(cerrarModalEstudiante, 900); // Cierra después de 0.9s
     });
   } else {
     // Validar que no exista alumno exacto con ese nombre
@@ -855,7 +855,6 @@ formEst.onsubmit = e => {
       Salon: salon
     }).then(()=>{
       msgEst.textContent = '¡Estudiante agregado!';
-      cerrarModalEstudiante();
       // Refrescar lista de alumnos después de agregar
       db.ref('Nombres').once('value', snap => {
         window.listaAlumnos = [];
@@ -863,7 +862,7 @@ formEst.onsubmit = e => {
           const val = child.val(); val._id = child.key; window.listaAlumnos.push(val);
         });
       });
+      setTimeout(cerrarModalEstudiante, 900); // Cierra después de 0.9s
     });
   }
 };
-
