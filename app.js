@@ -359,6 +359,28 @@ db.ref('Nombres').on('value', snap => {
 window._gradoSeleccionado = '';
 window._nivelSeleccionado = '';
 window._salonSeleccionado = '';
+window.alumnoSeleccionadoKey = '';
+
+// --- MODIFICADO: Mostrar botón editar si existe alumno ---
+const nombreNinoInput = document.getElementById('nombre-nino');
+const btnEditarEst = document.getElementById('btn-editar-estudiante');
+nombreNinoInput.addEventListener('input', function() {
+  const valor = this.value.trim().toLowerCase();
+  let keyFound = '';
+  for (let i = 0; i < window.listaAlumnos.length; i++) {
+    let alumno = window.listaAlumnos[i];
+    if (alumno.Nombre && alumno.Nombre.trim().toLowerCase() === valor) {
+      keyFound = alumno._id;
+      break;
+    }
+  }
+  window.alumnoSeleccionadoKey = keyFound;
+  if(keyFound) {
+    btnEditarEst.style.display = '';
+  } else {
+    btnEditarEst.style.display = 'none';
+  }
+});
 
 window.filtrarNombres = function() {
   const input = document.getElementById('nombre-nino');
@@ -406,6 +428,8 @@ window.filtrarNombres = function() {
       window._gradoSeleccionado = alum.Grado || '';
       window._nivelSeleccionado = alum.Nivel || '';
       window._salonSeleccionado = alum.Salon || '';
+      window.alumnoSeleccionadoKey = alum._id || '';
+      btnEditarEst.style.display = '';
     };
     sugerencias.appendChild(div);
   });
@@ -704,5 +728,131 @@ window.exportarExcel = function() {
   document.body.removeChild(a);
 };
 
-// Mostrar pedidos de hoy al iniciar
+// --------- MODAL DE AGREGAR / EDITAR ESTUDIANTE --------- //
+
+const gradosPorNivel = {
+  "Primaria": [
+    "1er Grado","2do Grado","3er Grado","4to Grado","5to Grado","6to Grado"
+  ],
+  "Secundaria": [
+    "1er Año","2do Año","3er Año","4to Año","5to Año"
+  ]
+};
+
+const btnAgregarEst = document.getElementById('btn-agregar-estudiante');
+const modalBg = document.getElementById('modal-estudiante-bg');
+const modalTitulo = document.getElementById('modal-estudiante-titulo');
+const formEst = document.getElementById('form-estudiante');
+const msgEst = document.getElementById('msg-estudiante-modal');
+const inputNombre = document.getElementById('modal-nombre');
+const selectNivel = document.getElementById('modal-nivel');
+const selectGrado = document.getElementById('modal-grado');
+const inputSalon = document.getElementById('modal-salon');
+const btnCerrarModal = document.getElementById('btn-cerrar-modal-est');
+
+// Cambia los grados según el nivel elegido
+selectNivel.onchange = function() {
+  let nivel = this.value;
+  selectGrado.innerHTML = '<option value="">Selecciona</option>';
+  if (nivel && gradosPorNivel[nivel]) {
+    gradosPorNivel[nivel].forEach(g => {
+      selectGrado.innerHTML += `<option value="${g}">${g}</option>`;
+    });
+  }
+};
+
+// Mostrar modal para agregar estudiante
+btnAgregarEst.onclick = function() {
+  formEst.reset();
+  msgEst.textContent = '';
+  modalTitulo.textContent = 'Agregar estudiante';
+  formEst.dataset.mode = 'agregar';
+  formEst.dataset.key = '';
+  modalBg.style.display = 'block';
+  setTimeout(()=>inputNombre.focus(), 180);
+};
+
+// Mostrar modal para editar estudiante
+btnEditarEst.onclick = function() {
+  if(!window.alumnoSeleccionadoKey) return;
+  const alum = window.listaAlumnos.find(a => a._id === window.alumnoSeleccionadoKey);
+  if(!alum) return;
+  formEst.reset();
+  msgEst.textContent = '';
+  modalTitulo.textContent = 'Editar estudiante';
+  inputNombre.value = alum.Nombre || '';
+  selectNivel.value = alum.Nivel || '';
+  selectNivel.onchange();
+  selectGrado.value = alum.Grado || '';
+  inputSalon.value = alum.Salon || '';
+  formEst.dataset.mode = 'editar';
+  formEst.dataset.key = alum._id;
+  modalBg.style.display = 'block';
+  setTimeout(()=>inputNombre.focus(), 180);
+};
+
+// Cerrar modal
+btnCerrarModal.onclick = () => { modalBg.style.display = 'none'; };
+modalBg.onclick = function(e){
+  if(e.target === modalBg) modalBg.style.display = 'none';
+};
+
+// Guardar estudiante
+formEst.onsubmit = e => {
+  e.preventDefault();
+  let nombre = inputNombre.value.trim();
+  let nivel = selectNivel.value;
+  let grado = selectGrado.value;
+  let salon = inputSalon.value.trim();
+  if(!nombre || !nivel || !grado) {
+    msgEst.textContent = 'Completa todos los campos obligatorios.';
+    return;
+  }
+  if(formEst.dataset.mode === 'editar') {
+    let key = formEst.dataset.key;
+    if(!key) { msgEst.textContent = 'Error al editar. Intenta otra vez.'; return; }
+    db.ref('Nombres/'+key).update({
+      Nombre: nombre,
+      Nivel: nivel,
+      Grado: grado,
+      Salon: salon
+    }).then(()=>{
+      msgEst.textContent = '¡Estudiante actualizado!';
+      modalBg.style.display = 'none';
+      // Recargar lista alumnos
+      db.ref('Nombres').once('value', snap => {
+        window.listaAlumnos = [];
+        snap.forEach(child => {
+          const val = child.val(); val._id = child.key; window.listaAlumnos.push(val);
+        });
+      });
+    });
+  } else {
+    // Validar que no exista alumno exacto con ese nombre
+    const yaExiste = window.listaAlumnos.some(a =>
+      a.Nombre && a.Nombre.trim().toLowerCase() === nombre.toLowerCase()
+    );
+    if(yaExiste) {
+      msgEst.textContent = 'Ya existe un estudiante con ese nombre.';
+      return;
+    }
+    db.ref('Nombres').push({
+      Nombre: nombre,
+      Nivel: nivel,
+      Grado: grado,
+      Salon: salon
+    }).then(()=>{
+      msgEst.textContent = '¡Estudiante agregado!';
+      modalBg.style.display = 'none';
+      // Recargar lista alumnos
+      db.ref('Nombres').once('value', snap => {
+        window.listaAlumnos = [];
+        snap.forEach(child => {
+          const val = child.val(); val._id = child.key; window.listaAlumnos.push(val);
+        });
+      });
+    });
+  }
+};
+
 cargarPedidos(fechaStr);
