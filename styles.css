@@ -286,13 +286,12 @@ tr:nth-child(even) td {
   left: 0; top: 0; width: 100vw; height: 100vh;
   background: #0007;
   z-index: 9998;
+  align-items: center;
+  justify-content: center;
 }
-.modal-bg.activo, .modal-bg.mostrar { display: block; }
-
+.modal-bg.activo, .modal-bg.mostrar { display: flex !important; }
 .modal-estudiante {
-  position: absolute;
-  left: 50%; top: 50%;
-  transform: translate(-50%,-50%);
+  /* Elimina position: absolute, left/top y transform */
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 4px 32px #0004;
@@ -301,6 +300,7 @@ tr:nth-child(even) td {
   padding: 30px 26px;
   z-index: 9999;
 }
+
 
 .modal-titulo {
   font-size: 1.23em;
