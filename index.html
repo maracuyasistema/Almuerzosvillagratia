@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>CRM Pedidos de Almuerzo VGA</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Bootstrap opcional -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Estilos propios -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <div class="admin-wrap">
@@ -19,11 +19,13 @@
     </div>
   </div>
 
+  <!-- Toolbar -->
   <div class="admin-toolbar">
     <button class="btn-azul" onclick="imprimirPedidos()"><i>🖨️</i> Imprimir Pedidos</button>
     <button class="btn-excel" onclick="exportarExcelTablaHoy()"><i>📁</i> Exportar a Excel</button>
   </div>
 
+  <!-- Cards -->
   <div class="admin-cards-row">
     <div class="admin-card card-blue">
       <div class="admin-card-title">Total de Pedidos</div>
@@ -50,6 +52,7 @@
   <!-- Registrar pedido -->
   <div class="card-form">
     <div class="form-header">📝 Registrar Nuevo Pedido</div>
+
     <form id="form-pedido" autocomplete="off">
       <div class="row-form">
         <div class="form-group nombre-nino-grupo">
@@ -62,11 +65,13 @@
           <div id="sugerenciasNombres" class="sugerencias-lista"></div>
           <div id="infoAlumno"></div>
         </div>
+
         <div class="form-group">
           <label>Fecha del Pedido</label>
           <input type="date" id="fecha-pedido" required>
         </div>
       </div>
+
       <div class="row-form">
         <div class="form-group">
           <label for="tipo-pedido">Tipo de Pedido</label>
@@ -83,25 +88,16 @@
         <div class="row-form">
           <div class="form-group">
             <label>Bebidas</label>
-            <select id="bebidas-categoria">
-              <option value="">Selecciona categoría</option>
-            </select>
-            <select id="bebidas-producto">
-              <option value="">Selecciona producto</option>
-            </select>
+            <select id="bebidas-categoria"><option value="">Selecciona categoría</option></select>
+            <select id="bebidas-producto"><option value="">Selecciona producto</option></select>
           </div>
           <div class="form-group">
             <label>Fondo</label>
-            <select id="fondo-categoria">
-              <option value="">Selecciona categoría</option>
-            </select>
-            <select id="fondo-producto">
-              <option value="">Selecciona producto</option>
-            </select>
+            <select id="fondo-categoria"><option value="">Selecciona categoría</option></select>
+            <select id="fondo-producto"><option value="">Selecciona producto</option></select>
           </div>
         </div>
       </div>
-      <!-- FIN BLOQUE DESAYUNO -->
 
       <!-- BLOQUE GENERAL -->
       <div id="bloque-general">
@@ -120,13 +116,13 @@
             <input id="postre" type="text" readonly class="input-disabled" autocomplete="off">
           </div>
         </div>
+
         <div id="bloque-promocion-btn">
           <button type="button" class="btn-azul" id="btn-promocion-semanal">Promoción semanal</button>
           <span id="msg-promocion"></span>
         </div>
         <div id="promo-semanal-block" class="oculto"></div>
       </div>
-      <!-- FIN BLOQUE GENERAL -->
 
       <div class="row-form">
         <div class="form-group">
@@ -141,9 +137,11 @@
           <input type="text" id="observaciones" placeholder="ej. sin picante, arroz extra...">
         </div>
       </div>
+
       <button class="btn-verde" type="submit">Registrar Pedido</button>
     </form>
   </div>
+
   <hr>
 
   <!-- Filtro para ver pedidos de un día -->
@@ -152,13 +150,13 @@
     <input type="date" id="fecha-mostrar" />
   </div>
 
-  <!-- Barra de filtro activo -->
+  <!-- Barra filtro activo -->
   <div id="filtro-activo-bar" style="display:none; margin:8px 0; padding:8px 12px; background:#f3f0ff; border:1px solid #d8ccff; border-radius:8px;">
     <span style="margin-right:12px; font-weight:600;">Filtro:</span>
     <button type="button" class="btn-azul" id="btn-quitar-filtro">Quitar filtro</button>
   </div>
 
-  <!-- Tabla pedidos de hoy -->
+  <!-- Tabla día -->
   <div class="card-table">
     <div class="table-header">📋 Pedidos de Hoy</div>
     <div class="table-scroll">
@@ -179,15 +177,17 @@
     </div>
     <div class="table-bottom-bar">
       <button class="btn-azul" onclick="imprimirPedidos()"><i>🖨️</i> Imprimir Pedidos de Hoy</button>
-      <button class="btn-verde" id="btn-ver-reporte"><i>📊</i> Reporte por Rango</button>
+      <button class="btn-verde"><i>📊</i> Reporte por Rango (abajo)</button>
     </div>
   </div>
 
-  <!-- Reporte por Rango -->
-  <div id="reporte-card" class="card-table" style="margin-top:18px; display:none;">
+  <!-- =========================
+       REPORTE POR RANGO (SIEMPRE VISIBLE)
+       ========================= -->
+  <div id="reporte-card" class="card-table" style="margin-top:18px;">
     <div class="table-header">📊 Reporte por Rango de Fechas</div>
 
-    <!-- RANGO -->
+    <!-- RANGO + ACCIONES -->
     <div class="row-form">
       <div class="form-group">
         <label>Desde</label>
@@ -202,9 +202,21 @@
         <div class="input-con-botones">
           <button class="btn-azul" id="rep-consultar">Consultar</button>
           <button class="btn-excel" id="rep-exportar-excel">Exportar Excel</button>
-          <button class="btn-verde" id="rep-imprimir">Imprimir / PDF</button>
+          <button class="btn-verde" id="rep-exportar-pdf">Exportar PDF</button>
         </div>
         <div class="small" style="margin-top:6px; color:#777;">Los exportes respetan los filtros.</div>
+      </div>
+    </div>
+
+    <!-- RANGOS RÁPIDOS -->
+    <div class="row-form">
+      <div class="form-group" style="flex:0 0 auto;">
+        <label>Rangos rápidos</label>
+        <div class="input-con-botones">
+          <button class="btn-azul" id="btn-rango-semana">Semana actual</button>
+          <button class="btn-azul" id="btn-rango-semana-pasada">Semana pasada</button>
+          <button class="btn-azul" id="btn-rango-mes">Este mes</button>
+        </div>
       </div>
     </div>
 
@@ -232,7 +244,7 @@
         <select id="rep-filtro-estado">
           <option value="Todos">Todos</option>
           <option>Pendiente</option>
-          <option>Entregado</option>
+        <option>Entregado</option>
           <option>Rechazado</option>
         </select>
       </div>
@@ -240,14 +252,12 @@
         <label>Nivel</label>
         <select id="rep-filtro-nivel">
           <option value="Todos">Todos</option>
-          <!-- se llena dinámicamente -->
         </select>
       </div>
       <div class="form-group">
         <label>Grado</label>
         <select id="rep-filtro-grado">
           <option value="Todos">Todos</option>
-          <!-- se llena dinámicamente -->
         </select>
       </div>
       <div class="form-group">
@@ -263,7 +273,7 @@
       </div>
     </div>
 
-    <!-- Resumen del rango -->
+    <!-- Resumen -->
     <div class="admin-cards-row" id="rep-cards" style="display:none;">
       <div class="admin-card card-blue">
         <div class="admin-card-title">Total</div>
