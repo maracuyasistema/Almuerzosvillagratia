@@ -179,13 +179,15 @@
     </div>
     <div class="table-bottom-bar">
       <button class="btn-azul" onclick="imprimirPedidos()"><i>🖨️</i> Imprimir Pedidos de Hoy</button>
-      <button class="btn-verde" id="btn-ver-reporte"><i>📊</i> Reporte Semanal</button>
+      <button class="btn-verde" id="btn-ver-reporte"><i>📊</i> Reporte por Rango</button>
     </div>
   </div>
 
-  <!-- Reporte Semanal -->
+  <!-- Reporte por Rango -->
   <div id="reporte-card" class="card-table" style="margin-top:18px; display:none;">
     <div class="table-header">📊 Reporte por Rango de Fechas</div>
+
+    <!-- RANGO -->
     <div class="row-form">
       <div class="form-group">
         <label>Desde</label>
@@ -201,6 +203,62 @@
           <button class="btn-azul" id="rep-consultar">Consultar</button>
           <button class="btn-excel" id="rep-exportar-excel">Exportar Excel</button>
           <button class="btn-verde" id="rep-imprimir">Imprimir / PDF</button>
+        </div>
+        <div class="small" style="margin-top:6px; color:#777;">Los exportes respetan los filtros.</div>
+      </div>
+    </div>
+
+    <!-- FILTROS AVANZADOS -->
+    <div class="row-form" id="rep-filtros" style="display:none;">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="rep-filtro-tipo">
+          <option value="Todos">Todos</option>
+          <option>Almuerzo</option>
+          <option>Variado</option>
+          <option>Desayunos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Pago</label>
+        <select id="rep-filtro-pago">
+          <option value="Todos">Todos</option>
+          <option value="Pagado">Pagado</option>
+          <option value="Pendiente">Pendiente</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="rep-filtro-estado">
+          <option value="Todos">Todos</option>
+          <option>Pendiente</option>
+          <option>Entregado</option>
+          <option>Rechazado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nivel</label>
+        <select id="rep-filtro-nivel">
+          <option value="Todos">Todos</option>
+          <!-- se llena dinámicamente -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Grado</label>
+        <select id="rep-filtro-grado">
+          <option value="Todos">Todos</option>
+          <!-- se llena dinámicamente -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Buscar nombre</label>
+        <input type="text" id="rep-buscar-nombre" placeholder="Escribe parte del nombre">
+      </div>
+      <div class="form-group" style="flex:0 0 auto;">
+        <label>&nbsp;</label>
+        <div class="input-con-botones">
+          <button class="btn-azul" id="rep-aplicar">Aplicar filtros</button>
+          <button class="btn-verde" id="rep-limpiar">Limpiar</button>
         </div>
       </div>
     </div>
@@ -249,6 +307,42 @@
         <tbody id="rep-tbody"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR/EDITAR ESTUDIANTE -->
+<div id="modal-estudiante-bg" class="modal-bg" style="display:none;">
+  <div id="modal-estudiante" class="modal-estudiante">
+    <div id="modal-estudiante-titulo" class="modal-titulo">Agregar estudiante</div>
+    <form id="form-estudiante" autocomplete="off">
+      <div class="form-group">
+        <label>Nombre <span class="obligatorio">*</span></label>
+        <input type="text" id="modal-nombre" maxlength="60" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Nivel <span class="obligatorio">*</span></label>
+        <select id="modal-nivel" required>
+          <option value="">Selecciona</option>
+          <option value="Primaria">Primaria</option>
+          <option value="Secundaria">Secundaria</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Grado <span class="obligatorio">*</span></label>
+        <select id="modal-grado" required>
+          <option value="">Selecciona nivel primero</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Salón</label>
+        <input type="text" id="modal-salon" maxlength="30" autocomplete="off">
+      </div>
+      <div class="modal-btns">
+        <button type="button" class="btn-azul" id="btn-cerrar-modal-est">Cancelar</button>
+        <button type="submit" class="btn-verde" id="btn-guardar-est">Guardar</button>
+      </div>
+      <div id="msg-estudiante-modal" class="msg-estudiante-modal"></div>
+    </form>
   </div>
 </div>
 
