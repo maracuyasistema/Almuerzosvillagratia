@@ -44,6 +44,10 @@ window._salonSeleccionado = '';
 const nombreNinoInput = document.getElementById('nombre-nino');
 const btnEditarEst = document.getElementById('btn-editar-estudiante');
 
+// ======= Reporte (rango) =======
+window.__reporteBase = [];     // lista sin filtrar del rango
+window.__reporteFiltrado = []; // lista tras filtros activos
+
 // ==================== 4) Catálogos ====================
 db.ref('Jugos').on('value', snap => {
   listaJugos = [];
@@ -739,7 +743,7 @@ document.getElementById('btn-promocion-semanal').addEventListener('click', funct
   });
 });
 
-// ==================== 20) Reporte Semanal (rango fechas) ====================
+// ==================== 20) Reporte por Rango con FILTROS ====================
 document.getElementById('btn-ver-reporte').addEventListener('click', () => {
   const card = document.getElementById('reporte-card');
   card.style.display = card.style.display === 'none' ? '' : 'none';
@@ -752,57 +756,143 @@ document.getElementById('rep-consultar').addEventListener('click', (e) => {
   if (!desde || !hasta) { alert('Selecciona ambas fechas (desde y hasta).'); return; }
   if (hasta < desde) { alert('La fecha "Hasta" no puede ser menor que "Desde".'); return; }
 
-  // Consulta por rango usando orderByChild('fecha')
   db.ref('pedidos').orderByChild('fecha').startAt(desde).endAt(hasta).once('value').then(snap => {
     const data = snap.val() || {};
     const lista = Object.values(data);
 
-    // Render resumen
-    const total      = lista.length;
-    const entregados = lista.filter(p=>p.estado==="Entregado").length;
-    const pendientes = lista.filter(p=>p.estado==="Pendiente").length;
-    const morosos    = lista.filter(p=>!p.pagado).length;
-
-    document.getElementById('rep-total').textContent      = total;
-    document.getElementById('rep-entregados').textContent = entregados;
-    document.getElementById('rep-pendientes').textContent = pendientes;
-    document.getElementById('rep-morosos').textContent    = morosos;
+    // Guarda base y resetea filtros visibles
+    window.__reporteBase = lista;
+    document.getElementById('rep-filtros').style.display = '';
+    poblarFiltrosDisponibles(lista);
+    aplicarFiltrosReporte(); // render inicial con filtros por defecto (Todos)
 
     document.getElementById('rep-cards').style.display = '';
     document.getElementById('rep-scroll').style.display = '';
-
-    // Render tabla del reporte
-    const tbody = document.getElementById('rep-tbody');
-    tbody.innerHTML = '';
-    // Orden cronológico asc por fecha + nombre
-    lista.sort((a,b) => (a.fecha||'').localeCompare(b.fecha||'') || (a.nombre||'').localeCompare(b.nombre||''));
-    lista.forEach(p => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${p.fecha || '-'}</td>
-          <td>${p.nombre || '-'}</td>
-          <td>${p.tipo || '-'}</td>
-          <td>${(p.menu||'-')}${p.entrada? ' · '+p.entrada : ''}${(p.postre && p.postre!=='nullahi')? ' · '+p.postre : ''}</td>
-          <td>${p.pagado ? 'Pagado' : 'Pendiente'}</td>
-          <td>${p.estado || '-'}</td>
-          <td>${p.nivel || ''}</td>
-          <td>${p.grado || ''}</td>
-          <td>${p.salon || ''}</td>
-          <td>${p.observaciones || ''}</td>
-        </tr>
-      `;
-    });
-
-    // Guarda el último rango consultado (para export/print)
-    window.__rangoReporte = {desde, hasta, lista};
+    window.__rangoReporte = {desde, hasta}; // para nombres de archivo
   });
 });
 
-// Exportar Excel del reporte
+// ---- util: opciones únicas ordenadas
+function uniquesOrdenados(arr){
+  return [...new Set(arr.filter(Boolean))].sort((a,b)=> (a||'').localeCompare(b||'', 'es', {numeric:true, sensitivity:'base'}));
+}
+
+// ---- poblar selects de Nivel/Grado según resultados
+function poblarFiltrosDisponibles(lista) {
+  const selNivel = document.getElementById('rep-filtro-nivel');
+  const selGrado = document.getElementById('rep-filtro-grado');
+
+  // reset
+  selNivel.innerHTML = `<option value="Todos">Todos</option>`;
+  selGrado.innerHTML = `<option value="Todos">Todos</option>`;
+
+  const niveles = uniquesOrdenados(lista.map(x => x.nivel));
+  niveles.forEach(n => selNivel.innerHTML += `<option value="${n}">${n}</option>`);
+
+  // grados de toda la base (se ajustan si cambia nivel)
+  const grados = uniquesOrdenados(lista.map(x => x.grado));
+  grados.forEach(g => selGrado.innerHTML += `<option value="${g}">${g}</option>`);
+}
+
+// ---- cuando cambie nivel, ajusta lista de grados disponibles
+document.getElementById('rep-filtro-nivel').addEventListener('change', () => {
+  const nivel = document.getElementById('rep-filtro-nivel').value;
+  const selGrado = document.getElementById('rep-filtro-grado');
+  selGrado.innerHTML = `<option value="Todos">Todos</option>`;
+  const base = window.__reporteBase || [];
+  const filtradosPorNivel = (nivel==='Todos') ? base : base.filter(x => (x.nivel||'') === nivel);
+  uniquesOrdenados(filtradosPorNivel.map(x => x.grado)).forEach(g => {
+    selGrado.innerHTML += `<option value="${g}">${g}</option>`;
+  });
+  aplicarFiltrosReporte();
+});
+
+// ---- aplicar/limpiar filtros
+document.getElementById('rep-aplicar').addEventListener('click', (e)=>{ e.preventDefault(); aplicarFiltrosReporte(); });
+document.getElementById('rep-limpiar').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('rep-filtro-tipo').value = 'Todos';
+  document.getElementById('rep-filtro-pago').value = 'Todos';
+  document.getElementById('rep-filtro-estado').value = 'Todos';
+  document.getElementById('rep-filtro-nivel').value = 'Todos';
+  // repoblar grados globales
+  const selGrado = document.getElementById('rep-filtro-grado');
+  selGrado.innerHTML = `<option value="Todos">Todos</option>`;
+  uniquesOrdenados((window.__reporteBase||[]).map(x=>x.grado)).forEach(g => selGrado.innerHTML += `<option value="${g}">${g}</option>`);
+  document.getElementById('rep-buscar-nombre').value = '';
+  aplicarFiltrosReporte();
+});
+
+// auto-aplicar al cambiar estos
+['rep-filtro-tipo','rep-filtro-pago','rep-filtro-estado','rep-filtro-grado'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', aplicarFiltrosReporte);
+});
+document.getElementById('rep-buscar-nombre').addEventListener('input', aplicarFiltrosReporte);
+
+// ---- Lógica de filtrado + render + contadores
+function aplicarFiltrosReporte(){
+  const tipo = document.getElementById('rep-filtro-tipo').value;
+  const pago = document.getElementById('rep-filtro-pago').value; // Pagado|Pendiente|Todos
+  const estado = document.getElementById('rep-filtro-estado').value;
+  const nivel = document.getElementById('rep-filtro-nivel').value;
+  const grado = document.getElementById('rep-filtro-grado').value;
+  const buscar = document.getElementById('rep-buscar-nombre').value.trim().toLowerCase();
+
+  let lista = [...(window.__reporteBase || [])];
+
+  if (tipo !== 'Todos')   lista = lista.filter(x => (x.tipo||'') === tipo);
+  if (pago !== 'Todos')   lista = lista.filter(x => (pago === 'Pagado') ? !!x.pagado : !x.pagado);
+  if (estado !== 'Todos') lista = lista.filter(x => (x.estado||'') === estado);
+  if (nivel !== 'Todos')  lista = lista.filter(x => (x.nivel||'') === nivel);
+  if (grado !== 'Todos')  lista = lista.filter(x => (x.grado||'') === grado);
+  if (buscar)             lista = lista.filter(x => (x.nombre||'').toLowerCase().includes(buscar));
+
+  // Orden por fecha + nombre
+  lista.sort((a,b) => (a.fecha||'').localeCompare(b.fecha||'') || (a.nombre||'').localeCompare(b.nombre||''));
+
+  window.__reporteFiltrado = lista;
+
+  // Contadores (del filtrado)
+  const total      = lista.length;
+  const entregados = lista.filter(p=>p.estado==="Entregado").length;
+  const pendientes = lista.filter(p=>p.estado==="Pendiente").length;
+  const morosos    = lista.filter(p=>!p.pagado).length;
+
+  document.getElementById('rep-total').textContent      = total;
+  document.getElementById('rep-entregados').textContent = entregados;
+  document.getElementById('rep-pendientes').textContent = pendientes;
+  document.getElementById('rep-morosos').textContent    = morosos;
+
+  // Render tabla
+  const tbody = document.getElementById('rep-tbody');
+  tbody.innerHTML = '';
+  if (!lista.length){
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#999;">Sin resultados para los filtros aplicados.</td></tr>`;
+    return;
+  }
+  lista.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.fecha || '-'}</td>
+        <td>${p.nombre || '-'}</td>
+        <td>${p.tipo || '-'}</td>
+        <td>${(p.menu||'-')}${p.entrada? ' · '+p.entrada : ''}${(p.postre && p.postre!=='nullahi')? ' · '+p.postre : ''}</td>
+        <td>${p.pagado ? 'Pagado' : 'Pendiente'}</td>
+        <td>${p.estado || '-'}</td>
+        <td>${p.nivel || ''}</td>
+        <td>${p.grado || ''}</td>
+        <td>${p.salon || ''}</td>
+        <td>${p.observaciones || ''}</td>
+      </tr>
+    `;
+  });
+}
+
+// Exportar Excel del reporte (usa la tabla filtrada tal cual se ve)
 document.getElementById('rep-exportar-excel').addEventListener('click', (e) => {
   e.preventDefault();
-  const desde = document.getElementById('rep-desde').value || '';
-  const hasta = document.getElementById('rep-hasta').value || '';
+  const desde = (window.__rangoReporte&&window.__rangoReporte.desde) || '';
+  const hasta = (window.__rangoReporte&&window.__rangoReporte.hasta) || '';
   const tabla = document.getElementById('tabla-reporte');
   if (!tabla || !tabla.rows.length) { alert('Primero consulta un rango.'); return; }
 
@@ -814,14 +904,14 @@ document.getElementById('rep-exportar-excel').addEventListener('click', (e) => {
     }
     csv.push(cols.join(","));
   }
-  descargarCSV(csv.join("\n"), `reporte_${desde}_a_${hasta}.csv`);
+  descargarCSV(csv.join("\n"), `reporte_${desde}_a_${hasta}_FILTRADO.csv`);
 });
 
-// Imprimir / PDF del reporte
+// Imprimir / PDF del reporte (respeta filtros porque usa la tabla actual)
 document.getElementById('rep-imprimir').addEventListener('click', (e) => {
   e.preventDefault();
-  const desde = document.getElementById('rep-desde').value || '';
-  const hasta = document.getElementById('rep-hasta').value || '';
+  const desde = (window.__rangoReporte&&window.__rangoReporte.desde) || '';
+  const hasta = (window.__rangoReporte&&window.__rangoReporte.hasta) || '';
   const w = window.open('', '', 'width=900,height=700');
   const cardsHTML = document.getElementById('rep-cards').outerHTML;
   const tablaHTML = document.getElementById('tabla-reporte').outerHTML;
@@ -838,9 +928,7 @@ document.getElementById('rep-imprimir').addEventListener('click', (e) => {
         table { width:100%; border-collapse: collapse; }
         th, td { padding: 8px; border-bottom:1px solid #e9eef7; text-align:left; font-size: 13px; }
         th { background:#f7fafc; }
-        @media print {
-          .no-print { display:none; }
-        }
+        @media print { .no-print { display:none; } }
       </style>
     </head>
     <body>
